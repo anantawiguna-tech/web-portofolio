@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project | Ketut Bagus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#fafafa] text-gray-800 antialiased selection:bg-blue-700 selection:text-white">
+
+    <!-- Preloader -->
+    <div id="preloader" class="fixed inset-0 z-[100] bg-[#fafafa] flex items-center justify-center transition-opacity duration-500">
+        <div class="w-14 h-14 border-4 border-gray-900 flex items-center justify-center text-xl text-gray-900"><i class="fas fa-gamepad"></i></div>
+    </div>
+
+    <!-- Portfolio -->
+    <main class="page-main">
+        <section id="showcase" class="h-full flex flex-col">
+            <div class="max-w-7xl mx-auto px-6 pt-4 flex flex-col h-full w-full min-h-0">
+                <!-- Slot used in List mode: header + tabs sit above the box, in normal flow. -->
+                <div id="header-slot-outside" class="shrink-0"></div>
+
+                <!-- Draggable Node Tree -->
+                <div id="tree-viewport" class="relative w-full flex-1 min-h-0 mb-6 border-2 border-gray-900 bg-white overflow-hidden cursor-grab active:cursor-grabbing select-none reveal">
+                    <!-- Slot used in Node Graph mode: header + tabs are tucked inside this box, overlaid at the top. -->
+                    <div id="header-slot-inside" class="absolute inset-x-0 top-0 z-20 bg-white/55 backdrop-blur-sm border-b-2 border-gray-900"></div>
+
+                    <div id="tree-canvas">
+                        <svg id="tree-lines" class="absolute top-0 left-0 pointer-events-none"></svg>
+                        <div id="tree-nodes" class="relative"></div>
+                    </div>
+                    <div class="absolute bottom-3 right-3 text-xs font-bold text-gray-700 bg-white border-2 border-gray-900 px-3 py-1.5 pointer-events-none">
+                        <i class="fas fa-arrows-alt"></i> Drag untuk geser
+                    </div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-blue-700 border-2 border-white shadow pointer-events-none z-10" title="Titik pusat kamera (patokan zoom)"></div>
+                    <div id="cam-debug" onclick="copyCamDebug(event)" onpointerdown="event.stopPropagation()" class="absolute top-3 left-3 z-10 text-[11px] font-mono font-bold text-gray-800 bg-white/90 border-2 border-gray-900 px-3 py-1.5 leading-relaxed cursor-pointer hover:bg-gray-900 hover:text-white transition-colors" title="Klik untuk copy">
+                        X: 0<br>Y: 0<br>Z: 1.00
+                    </div>
+                    <div id="zoom-controls" class="absolute top-3 right-3 z-10 flex flex-col border-2 border-gray-900 bg-white">
+                        <button onclick="zoomBy(1.2)" class="w-9 h-9 flex items-center justify-center font-bold text-lg border-b-2 border-gray-900 hover:bg-gray-900 hover:text-white transition-colors" title="Zoom in">+</button>
+                        <button onclick="zoomBy(1/1.2)" class="w-9 h-9 flex items-center justify-center font-bold text-lg border-b-2 border-gray-900 hover:bg-gray-900 hover:text-white transition-colors" title="Zoom out">&minus;</button>
+                        <button onclick="resetZoom()" class="w-9 h-9 flex items-center justify-center text-xs font-bold hover:bg-gray-900 hover:text-white transition-colors" title="Reset zoom">
+                            <i class="fas fa-compress"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- List View -->
+                <div id="list-view" class="hidden flex-1 min-h-0 max-h-[28rem] overflow-y-auto flex flex-col border-2 border-gray-900 bg-white divide-y divide-gray-300"></div>
+
+                <!-- The actual header + tabs markup - JS moves this node between the two slots above. -->
+                <template id="header-template">
+                    <div class="text-center pt-3 pb-2 px-3 shrink-0">
+                        <h2 class="title-font text-2xl md:text-3xl font-extrabold mb-1 text-gray-900">Project</h2>
+                        <p class="text-gray-600 text-sm">Geser (drag) untuk menjelajahi proyek game yang saya kembangkan</p>
+                    </div>
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-3 pb-3 px-3 shrink-0">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="switchCategory('all')" id="cat-all" class="cat-btn active">All</button>
+                            <button onclick="switchCategory('2d')" id="cat-2d" class="cat-btn">2D Games</button>
+                            <button onclick="switchCategory('3d')" id="cat-3d" class="cat-btn">3D Games</button>
+                        </div>
+                        <div class="flex border-2 border-gray-900">
+                            <button onclick="switchView('graph')" id="view-graph" class="view-btn active" title="Node Graph">
+                                <i class="fas fa-diagram-project"></i> <span class="hidden sm:inline">Node Graph</span>
+                            </button>
+                            <button onclick="switchView('list')" id="view-list" class="view-btn" title="List">
+                                <i class="fas fa-list"></i> <span class="hidden sm:inline">List</span>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Bar -->
+    <nav class="bottom-bar grid grid-cols-4">
+        <a href="index.html"><i class="fas fa-house"></i> Home</a>
+        <a href="portfolio.html" class="active"><i class="fas fa-diagram-project"></i> Project</a>
+        <a href="experience.html"><i class="fas fa-briefcase"></i> Experience</a>
+        <a href="contact.html"><i class="fas fa-envelope"></i> Contact</a>
+    </nav>
+
+    <!-- Node Detail Modal -->
+    <div id="node-modal" class="fixed inset-0 bg-black/60 z-[90] hidden items-center justify-center p-4" onclick="closeModal(event)">
+        <div class="bg-white border-2 border-gray-900 max-w-lg w-full max-h-[85vh] overflow-y-auto">
+            <img id="modal-img" src="" class="w-full h-56 object-cover border-b-2 border-gray-900" alt="">
+            <div class="p-6">
+                <h3 id="modal-title" class="text-2xl font-bold text-gray-900 mb-3"></h3>
+                <p id="modal-desc" class="text-gray-600 mb-4 leading-relaxed"></p>
+                <div id="modal-tags" class="flex flex-wrap gap-2"></div>
+                <button onclick="closeModal()" class="mt-6 border-2 border-gray-900 px-6 py-2.5 font-bold hover:bg-gray-900 hover:text-white transition-colors">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/portfolio-data.js"></script>
+    <script>
+        let currentCategory = "all";
+        let nodesData = [];   // {id, type, title, game, x, y, vx, vy, homeX, homeY, dragging}
+        let edgesData = [];   // {a, b, restLen}
+        let nodeEls = {};     // id -> DOM element
+        let lineEls = [];     // {el, a, b}
+
+        const CANVAS_W = 2400;
+        const NODE_GAP_Y = 150;
+        const SPRING_K = 0.06;    // pulls connected nodes toward rest distance
+        const HOME_K = 0.008;     // gentle pull back toward original layout spot
+        const ROOT_HOME_K = 0.05; // stronger snap-back for the root so it stays put but can still flex
+        const DAMPING = 0.82;
+
+        // Canvas pan (background drag) + zoom
+        let panX = 0, panY = 0;
+        let zoom = 1;
+        const ZOOM_MIN = 0.2, ZOOM_MAX = 2.5;
+        let currentCanvasH = 1000;
+        let panning = false, panMoved = false, panStartX = 0, panStartY = 0;
+
+        // Single node drag
+        let draggingNode = null;
+        let clickSuppressed = false;
+
+        // Random per page-load, so the layout reshuffles on every refresh.
+        function seededRand() {
+            return Math.random();
+        }
+
+        const CATEGORY_Y = 340;
+
+        function buildTree() {
+            const nodes = [];
+            const edges = [];
+
+            const cats = [
+                { id: '2d', title: '2D Games', x: CANVAS_W * 0.27, y: CATEGORY_Y },
+                { id: '3d', title: '3D Games', x: CANVAS_W * 0.73, y: CATEGORY_Y }
+            ];
+
+            let maxY = 400;
+
+            cats.forEach((cat, ci) => {
+                if (currentCategory !== 'all' && currentCategory !== cat.id) return;
+                // Category node is anchored - it's the fixed center that game nodes branch off from.
+                nodes.push({ id: 'cat-' + cat.id, type: 'category', title: cat.title, x: cat.x, y: cat.y, vx: 0, vy: 0, homeX: cat.x, homeY: cat.y, floatSeed: seededRand() * 1000, floatAmp: 5 + seededRand() * 4 });
+
+                const items = portfolioData.filter(g => g.category === cat.id);
+                const count = items.length;
+                const radius = 220 + Math.max(0, count - 6) * 14; // grows a bit for many items
+                const catNodes = [];
+                items.forEach((game, i) => {
+                    // Spread roughly around the category node, but with heavy jitter so it doesn't look like a neat ring.
+                    const angle = (Math.PI * 2 * i) / count - Math.PI / 2 + (Math.PI / count);
+                    const jitterR = (seededRand() - 0.5) * radius * 0.9;
+                    const jitterA = (seededRand() - 0.5) * (Math.PI * 2 / count) * 0.9;
+                    const r = Math.max(120, radius + jitterR);
+                    const a = angle + jitterA;
+                    const nx = cat.x + Math.cos(a) * r;
+                    const ny = cat.y + Math.sin(a) * r;
+                    const id = 'game-' + cat.id + '-' + i;
+                    const node = { id, type: 'game', title: game.title, game, x: nx, y: ny, vx: 0, vy: 0, homeX: nx, homeY: ny, floatSeed: seededRand() * 1000, floatAmp: 10 + seededRand() * 12 };
+                    nodes.push(node);
+                    catNodes.push(node);
+                    if (ny > maxY) maxY = ny;
+                });
+
+                // Instead of every node spoking straight to the category, weave siblings together
+                // into a connected web: chain neighbors, sprinkle a few cross-links, and only tie
+                // a handful of nodes directly back to the category to keep the cluster anchored.
+                catNodes.forEach((n, i) => {
+                    if (i === 0 || i % 4 === 0) {
+                        edges.push({ a: 'cat-' + cat.id, b: n.id, restLen: dist(cat.x, cat.y, n.x, n.y) });
+                    }
+                    if (i > 0) {
+                        const prev = catNodes[i - 1];
+                        edges.push({ a: prev.id, b: n.id, restLen: dist(prev.x, prev.y, n.x, n.y) });
+                    }
+                });
+                catNodes.forEach((n, i) => {
+                    if (seededRand() < 0.4 && catNodes.length > 2) {
+                        const j = Math.floor(seededRand() * catNodes.length);
+                        const other = catNodes[j];
+                        if (other && other.id !== n.id) {
+                            edges.push({ a: n.id, b: other.id, restLen: dist(n.x, n.y, other.x, other.y) });
+                        }
+                    }
+                });
+            });
+
+            return { nodes, edges, canvasH: maxY + 200 };
+        }
+
+        function dist(x1, y1, x2, y2) {
+            return Math.hypot(x2 - x1, y2 - y1);
+        }
+
+        function renderTree() {
+            const { nodes, edges, canvasH } = buildTree();
+            nodesData = nodes;
+            edgesData = edges;
+            currentCanvasH = canvasH;
+
+            const nodesContainer = document.getElementById('tree-nodes');
+            const svg = document.getElementById('tree-lines');
+
+            nodesContainer.style.width = CANVAS_W + 'px';
+            nodesContainer.style.height = canvasH + 'px';
+            svg.setAttribute('width', CANVAS_W);
+            svg.setAttribute('height', canvasH);
+
+            svg.innerHTML = edges.map((e, i) => `<line class="tree-line" data-i="${i}"/>`).join('');
+            lineEls = Array.from(svg.querySelectorAll('line')).map((el, i) => ({ el, a: edges[i].a, b: edges[i].b }));
+
+            nodesContainer.innerHTML = nodes.map(n => {
+                if (n.type === 'game') {
+                    return `<div class="tree-node game" data-id="${n.id}">
+                        <img src="${n.game.image}" loading="lazy" alt="${n.title}">
+                        <div class="node-title">${n.title}</div>
+                    </div>`;
+                }
+                return `<div class="tree-node ${n.type}" data-id="${n.id}">
+                    <div class="node-title">${n.title}</div>
+                </div>`;
+            }).join('');
+
+            nodeEls = {};
+            nodesContainer.querySelectorAll('.tree-node').forEach(el => {
+                nodeEls[el.dataset.id] = el;
+                el.addEventListener('pointerdown', e => {
+                    e.stopPropagation();
+                    startNodeDrag(el.dataset.id, e);
+                });
+            });
+
+            applyPositions();
+        }
+
+        function applyPositions() {
+            nodesData.forEach(n => {
+                const el = nodeEls[n.id];
+                if (el) el.style.left = n.x + 'px', el.style.top = n.y + 'px';
+            });
+            lineEls.forEach(l => {
+                const a = nodesData.find(n => n.id === l.a);
+                const b = nodesData.find(n => n.id === l.b);
+                if (!a || !b) return;
+                l.el.setAttribute('x1', a.x);
+                l.el.setAttribute('y1', a.y);
+                l.el.setAttribute('x2', b.x);
+                l.el.setAttribute('y2', b.y);
+            });
+        }
+
+        // Physics simulation loop
+        function simulate() {
+            const t = performance.now() * 0.0011;
+
+            edgesData.forEach(e => {
+                const a = nodesData.find(n => n.id === e.a);
+                const b = nodesData.find(n => n.id === e.b);
+                if (!a || !b) return;
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const d = Math.hypot(dx, dy) || 0.001;
+                const diff = (d - e.restLen) / d;
+                const fx = dx * diff * SPRING_K;
+                const fy = dy * diff * SPRING_K;
+
+                if (!a.dragging) { a.vx += fx; a.vy += fy; }
+                if (!b.dragging) { b.vx -= fx; b.vy -= fy; }
+            });
+
+            nodesData.forEach(n => {
+                if (n.dragging) return;
+                // Ambient floating: the "home" target itself drifts in a slow, organic loop so
+                // nodes gently bob around even when nothing is being dragged.
+                const amp = n.floatAmp || 0;
+                const floatX = Math.sin(t + n.floatSeed) * amp;
+                const floatY = Math.cos(t * 0.8 + n.floatSeed * 1.3) * amp;
+                const targetX = n.homeX + floatX;
+                const targetY = n.homeY + floatY;
+
+                // gentle pull back to floating target (category snaps back harder so it stays anchored-feeling)
+                const homeK = n.type === 'category' ? ROOT_HOME_K : HOME_K;
+                n.vx += (targetX - n.x) * homeK;
+                n.vy += (targetY - n.y) * homeK;
+
+                n.vx *= DAMPING;
+                n.vy *= DAMPING;
+                n.x += n.vx;
+                n.y += n.vy;
+            });
+
+            applyPositions();
+            requestAnimationFrame(simulate);
+        }
+
+        let simRunning = false;
+        function wakeSim() {
+            if (!simRunning) {
+                simRunning = true;
+                requestAnimationFrame(simulate);
+            }
+        }
+
+        function switchCategory(cat) {
+            currentCategory = cat;
+            ['all', '2d', '3d'].forEach(c => {
+                document.getElementById('cat-' + c).classList.toggle('active', c === cat);
+            });
+            renderTree();
+            centerView();
+            renderList();
+        }
+
+        // Header + tabs live in a single <template> and get moved into whichever slot fits the
+        // current view: tucked inside the bordered node-graph box, or sitting above the list.
+        function placeHeader(view) {
+            const outsideSlot = document.getElementById('header-slot-outside');
+            const insideSlot = document.getElementById('header-slot-inside');
+            const target = view === 'graph' ? insideSlot : outsideSlot;
+            const other = view === 'graph' ? outsideSlot : insideSlot;
+            other.innerHTML = '';
+            if (!target.firstChild) {
+                const tpl = document.getElementById('header-template');
+                target.appendChild(tpl.content.cloneNode(true));
+            }
+            // In graph mode the header overlays the top of the box - push the camera-debug readout
+            // and zoom controls down below it so they don't get hidden underneath.
+            const camDebug = document.getElementById('cam-debug');
+            const zoomControls = document.getElementById('zoom-controls');
+            if (view === 'graph') {
+                requestAnimationFrame(() => {
+                    const offset = insideSlot.offsetHeight + 12;
+                    camDebug.style.top = offset + 'px';
+                    zoomControls.style.top = offset + 'px';
+                });
+            } else {
+                camDebug.style.top = '';
+                zoomControls.style.top = '';
+            }
+        }
+
+        // View mode: 'graph' (draggable node tree) or 'list' (simple grid)
+        let currentView = 'graph';
+        function switchView(view) {
+            currentView = view;
+            placeHeader(view);
+            document.getElementById('view-graph').classList.toggle('active', view === 'graph');
+            document.getElementById('view-list').classList.toggle('active', view === 'list');
+            document.getElementById('tree-viewport').classList.toggle('hidden', view !== 'graph');
+            document.getElementById('list-view').classList.toggle('hidden', view !== 'list');
+            if (view === 'list') renderList();
+        }
+
+        function renderList() {
+            const container = document.getElementById('list-view');
+            const items = portfolioData.filter(g => currentCategory === 'all' || g.category === currentCategory);
+            container.innerHTML = items.map((game, i) => `
+                <div class="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-gray-100 transition-colors" onclick="openModalFromData(${portfolioData.indexOf(game)})">
+                    <img src="${game.image}" loading="lazy" alt="${game.title}" class="w-10 h-10 shrink-0 object-cover border-2 border-gray-900">
+                    <div class="font-bold text-sm text-gray-900 truncate">${game.title}</div>
+                    <div class="ml-auto hidden sm:flex flex-wrap gap-1 justify-end shrink-0 max-w-[45%]">
+                        ${game.tags.map(t => `<span class="text-[10px] border-2 border-gray-900 px-1.5 py-0.5 font-bold whitespace-nowrap">${t}</span>`).join('')}
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400 text-xs shrink-0"></i>
+                </div>
+            `).join('');
+        }
+
+        function openModalFromData(index) {
+            const game = portfolioData[index];
+            if (!game) return;
+            document.getElementById('modal-img').src = game.image;
+            document.getElementById('modal-title').textContent = game.title;
+            document.getElementById('modal-desc').textContent = game.description;
+            document.getElementById('modal-tags').innerHTML = game.tags.map(t =>
+                `<span class="text-xs border-2 border-gray-900 px-3 py-1.5 font-bold">${t}</span>`
+            ).join('');
+            const modal = document.getElementById('node-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openModal(id) {
+            const node = nodesData.find(n => n.id === id);
+            if (!node || !node.game) return;
+            document.getElementById('modal-img').src = node.game.image;
+            document.getElementById('modal-title').textContent = node.game.title;
+            document.getElementById('modal-desc').textContent = node.game.description;
+            document.getElementById('modal-tags').innerHTML = node.game.tags.map(t =>
+                `<span class="text-xs border-2 border-gray-900 px-3 py-1.5 font-bold">${t}</span>`
+            ).join('');
+            const modal = document.getElementById('node-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(e) {
+            if (e && e.target.id !== 'node-modal') return;
+            const modal = document.getElementById('node-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Canvas pan (background drag)
+        const viewport = document.getElementById('tree-viewport');
+        const canvas = document.getElementById('tree-canvas');
+
+        function updateTransform() {
+            canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+            const dbg = document.getElementById('cam-debug');
+            if (dbg) dbg.innerHTML = `X: ${panX.toFixed(1)}<br>Y: ${panY.toFixed(1)}<br>Z: ${zoom.toFixed(2)}`;
+        }
+
+        function clampPan() {
+            // Free panning - no horizontal/vertical limits, drag as far as you like.
+        }
+
+        function copyCamDebug(e) {
+            e.stopPropagation();
+            const text = `X: ${panX.toFixed(1)}\nY: ${panY.toFixed(1)}\nZ: ${zoom.toFixed(2)}`;
+            navigator.clipboard.writeText(text).then(() => {
+                const dbg = document.getElementById('cam-debug');
+                if (!dbg) return;
+                const original = dbg.innerHTML;
+                dbg.innerHTML = 'Copied!';
+                setTimeout(() => { dbg.innerHTML = original; }, 900);
+            });
+        }
+
+        // Fixed default camera position - applied on every load/refresh (and reset).
+        const DEFAULT_CAM = { x: -569.0, y: -53.4, z: 0.45 };
+
+        function centerView() {
+            panX = DEFAULT_CAM.x;
+            panY = DEFAULT_CAM.y;
+            zoom = DEFAULT_CAM.z;
+            clampPan();
+            updateTransform();
+        }
+
+        // Zoom, keeping the point under (clientX, clientY) fixed on screen
+        function zoomAt(newZoom, clientX, clientY) {
+            newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+            const rect = viewport.getBoundingClientRect();
+            const cx = clientX - rect.left, cy = clientY - rect.top;
+            const canvasX = (cx - panX) / zoom;
+            const canvasY = (cy - panY) / zoom;
+            zoom = newZoom;
+            panX = cx - canvasX * zoom;
+            panY = cy - canvasY * zoom;
+            clampPan();
+            updateTransform();
+        }
+
+        function zoomBy(factor) {
+            const rect = viewport.getBoundingClientRect();
+            zoomAt(zoom * factor, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+
+        function resetZoom() {
+            centerView();
+        }
+
+        viewport.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+            zoomAt(zoom * factor, e.clientX, e.clientY);
+        }, { passive: false });
+
+        function startPan(x, y, pointerId) {
+            // A node drag is already claiming this pointer/gesture - don't also pan.
+            if (draggingNode) return;
+            panning = true;
+            panMoved = false;
+            panPointerId = pointerId;
+            panStartX = x - panX;
+            panStartY = y - panY;
+        }
+        function movePan(x, y) {
+            if (!panning) return;
+            if (Math.abs(x - panX - panStartX) > 4 || Math.abs(y - panY - panStartY) > 4) panMoved = true;
+            panX = x - panStartX;
+            panY = y - panStartY;
+            clampPan();
+            updateTransform();
+        }
+        function endPan() { panning = false; panPointerId = null; }
+
+        let panPointerId = null;
+
+        viewport.addEventListener('pointerdown', e => {
+            startPan(e.clientX, e.clientY, e.pointerId);
+        });
+        window.addEventListener('pointermove', e => {
+            if (panning && e.pointerId === panPointerId) movePan(e.clientX, e.clientY);
+        });
+        window.addEventListener('pointerup', e => {
+            if (e.pointerId === panPointerId) endPan();
+        });
+        window.addEventListener('pointercancel', e => {
+            if (e.pointerId === panPointerId) endPan();
+        });
+
+        // Single node drag (pulls connected nodes via springs)
+        let dragPointerId = null;
+        let nodeDragOffsetX = 0, nodeDragOffsetY = 0;
+
+        function startNodeDrag(id, downEvent) {
+            const node = nodesData.find(n => n.id === id);
+            if (!node) return;
+
+            // Finish any stale/leftover drag before starting a new one.
+            if (draggingNode) {
+                draggingNode.dragging = false;
+                draggingNode = null;
+            }
+            panning = false;
+
+            draggingNode = node;
+            dragPointerId = downEvent.pointerId;
+            node.dragging = true;
+            node.vx = 0; node.vy = 0;
+            clickSuppressed = false;
+
+            const rect = viewport.getBoundingClientRect();
+            const canvasX = (downEvent.clientX - rect.left - panX) / zoom;
+            const canvasY = (downEvent.clientY - rect.top - panY) / zoom;
+            nodeDragOffsetX = canvasX - node.x;
+            nodeDragOffsetY = canvasY - node.y;
+
+            wakeSim();
+
+            function onMove(e) {
+                if (e.pointerId !== dragPointerId) return;
+                const r = viewport.getBoundingClientRect();
+                const px = (e.clientX - r.left - panX) / zoom - nodeDragOffsetX;
+                const py = (e.clientY - r.top - panY) / zoom - nodeDragOffsetY;
+                if (Math.abs(px - node.x) > 2 || Math.abs(py - node.y) > 2) clickSuppressed = true;
+                node.x = px;
+                node.y = py;
+                applyPositions();
+                wakeSim();
+            }
+            function onUp(e) {
+                if (e.pointerId !== dragPointerId) return;
+                finish();
+            }
+            function finish() {
+                node.dragging = false;
+                if (draggingNode === node) draggingNode = null;
+                dragPointerId = null;
+                wakeSim();
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+                window.removeEventListener('pointercancel', onUp);
+                if (!clickSuppressed && node.type === 'game') openModal(node.id);
+            }
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointercancel', onUp);
+        }
+
+        // Initialize
+        placeHeader('graph');
+        renderTree();
+        centerView();
+        renderList();
+        wakeSim();
+        window.addEventListener('resize', centerView);
+        window.addEventListener('resize', () => placeHeader(currentView));
+
+        // Tailwind's CDN build injects its stylesheet asynchronously, so the viewport can still
+        // report a stale (zero/partial) size on the very first paint. Re-fit once layout has
+        // actually settled, so every node is guaranteed visible on first load/refresh.
+        requestAnimationFrame(() => requestAnimationFrame(centerView));
+        window.addEventListener('load', centerView);
+    </script>
+    <script src="js/common.js"></script>
+</body>
+</html>

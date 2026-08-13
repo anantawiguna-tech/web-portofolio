@@ -1,0 +1,173 @@
+html, body {
+    height: 100%;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    overflow-x: hidden;
+    background-color: #fafafa;
+    display: flex;
+    flex-direction: column;
+}
+.title-font {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Page fits the viewport; bottom bar is reserved space, content scrolls internally only if it doesn't fit */
+.page-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Bottom nav bar */
+.bottom-bar {
+    flex: 0 0 auto;
+    background: #ffffff;
+    border-top: 2px solid #111827;
+}
+.bottom-bar a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+}
+.bottom-bar a i {
+    font-size: 1.1rem;
+}
+.bottom-bar a.active {
+    color: #1d4ed8;
+}
+
+/* Flat cards - no blur, no gradient, no shadow */
+.flat-card {
+    background: #ffffff;
+    border: 2px solid #111827;
+}
+
+/* Portfolio Image */
+.portfolio-img {
+    height: 220px;
+    object-fit: cover;
+}
+
+/* Category buttons */
+.cat-btn {
+    padding: 0.65rem 1.75rem;
+    border: 2px solid #111827;
+    font-weight: 700;
+    background: #ffffff;
+    color: #111827;
+}
+.cat-btn.active {
+    background: #111827;
+    color: #ffffff;
+}
+
+/* View switch buttons */
+.view-btn {
+    padding: 0.65rem 1.25rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    background: #ffffff;
+    color: #111827;
+}
+.view-btn:not(:last-child) {
+    border-right: 2px solid #111827;
+}
+.view-btn.active {
+    background: #111827;
+    color: #ffffff;
+}
+
+/* Tree viewport */
+#tree-viewport {
+    touch-action: none;
+}
+#tree-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform;
+}
+.tree-node {
+    position: absolute;
+    width: 150px;
+    border: 2px solid #111827;
+    background: #ffffff;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+}
+.tree-node img {
+    width: 100%;
+    height: 74px;
+    object-fit: cover;
+    border: 1px solid #111827;
+    margin-bottom: 6px;
+    pointer-events: none;
+}
+.tree-node .node-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
+}
+.tree-node.root, .tree-node.category {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: #111827;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    animation: node-bounce 2.4s ease-in-out infinite;
+}
+.tree-node.category:nth-of-type(2) {
+    animation-delay: -1.2s;
+}
+.tree-node.root .node-title, .tree-node.category .node-title {
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+
+@keyframes node-bounce {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.08) translateY(-6px); }
+}
+.tree-line {
+    stroke: #111827;
+    stroke-width: 2;
+    fill: none;
+}
+
+/* Scroll Animations */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+}
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+::-webkit-scrollbar-thumb {
+    background: #111827;
+}
